@@ -1,4 +1,4 @@
-function Bar(x, y, ang, w, l)
+function Mover(x, y, ang, spring)
 {
         this.x = x;
         this.dx = x;
@@ -6,28 +6,27 @@ function Bar(x, y, ang, w, l)
         this.dy = y;
         this.ang = ang;
         this.dang = ang;
-        this.w = w;
-        this.l = l;
+        this.spring = spring;
 }
 
-Bar.prototype.moveTo = function(x, y, ang){
+Mover.prototype.moveTo = function(x, y, ang){
         this.dx = x;
         this.dy = y;
         this.dang = ang;
 }
 
-Bar.prototype.update = function(){
-        var scalar = 0.02;
+Mover.prototype.update = function(){
+        var scalar = this.spring;
         this.x += (this.dx-this.x)*scalar;
         this.y += (this.dy-this.y)*scalar;
         this.ang += (this.dang-this.ang)*scalar;
 }
 
-Bar.prototype.draw = function(){
+Mover.prototype.draw = function(){
         push();
         translate(this.x, this.y);
         rotate(this.ang);
         rectMode(CENTER);
-        rect(0, 0, this.w, this.l);
+        rect(0, 0, 20, 100);
         pop();
 }
