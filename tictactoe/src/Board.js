@@ -3,6 +3,9 @@ function Board(size){
         this.board = [];
         this.vboard = [];
         this.bars = [];
+        for(let i=0; i<this.size*this.size; i++){
+                this.board[i] = EMPTY;
+        }
 }
 
 Board.prototype.initView = function(x, y, length){
@@ -39,7 +42,7 @@ Board.prototype.draw = function(){
                 bar.draw();
         }
         var segsize = this.length/this.size;
-        for(let i=0; i<this.vboard.length; i+=this.size){
+        for(let i=0; i<this.size*this.size; i+=this.size){
                 for(let j=0; j<this.size; j++){
                         if(this.vboard[i+j] === null){
                                 continue;
@@ -62,9 +65,121 @@ Board.prototype.clone = function(){
 };
 
 Board.prototype.applyMove = function(move){
-        if(this.board[move.index] == EMPTY){
-                this.board[move.index] = move.value;
-                return true;
+        this.board[move.index] = move.value;
+        if(move.value == X){
+                this.vboard[move.index] = (new XPiece(this.x, this.y, 0.9*(this.length/this.size)));
+        }
+        if(move.value == O){
+                this.vboard[move.index] = (new OPiece(this.x, this.y, 0.9*(this.length/this.size)));
+        }
+}
+
+Board.prototype.isValidMove = function(move){
+        return move.index >= 0 && move.index < this.size*this.size &&
+                (move.value == X || move.value == O) &&
+                this.board[move.index] == EMPTY;
+}
+
+Board.prototype.getWinner = function(){
+        let winner = 0;
+        let count = 0;
+        for(let i=0; i<this.size*this.size; i+=this.size){
+                count = 0;
+                for(let j=0; j<this.size; j++){
+                        if(count == 0 && this.board[i+j] != EMPTY){
+                                winner = this.board[i+j];
+                                count = 1;
+                        }
+                        else{
+                                if(this.board[i+j] == winner){
+                                        count += 1;
+                                }
+                                else{
+                                        count = 0;
+                                }
+                        }
+                }
+                if(count == this.size){
+                        return winner;
+                }
+        }
+
+        for(let i=0; i<this.size; i++){
+                count = 0;
+                for(let j=0; j<this.size*this.size; j+=this.size){
+                        if(count == 0 && this.board[i+j] != EMPTY){
+                                winner = this.board[i+j];
+                                count = 1;
+                        }
+                        else{
+                                if(this.board[i+j] == winner){
+                                        count += 1;
+                                }
+                                else{
+                                        count = 0;
+                                }
+                        }
+                }
+                if(count == this.size){
+                        return winner;
+                }
+        }
+
+        count = 0;
+        for(let i=0; i<this.size*this.size; i+=this.size+1){
+                if(count == 0 && this.board[i] != EMPTY){
+                        winner = this.board[i];
+                        count += 1;
+                }
+                else{
+                        if(this.board[i] == winner){
+                                count += 1;
+                        }
+                        else{
+                                count = 0;
+                        }
+                }
+        }
+        if(count == this.size){
+                return winner;
+        }
+
+        count = 0;
+        for(let i=this.size-1; i<this.size*this.size-1; i+=this.size-1){
+                if(count == 0 && this.board[i] != EMPTY){
+                        winner = this.board[i];
+                        count += 1;
+                }
+                else{
+                        if(this.board[i] == winner){
+                                count += 1;
+                        }
+                        else{
+                                count = 0;
+                        }
+                }
+        }
+        if(count == this.size){
+                return winner;
         }
         return false;
+}
+
+Board.prototype.getAllMoves = function(player)
+{
+        var moves = [];
+        for(let i=0; i<this.size*this.size; i++){
+                if(this.board[i] == EMPTY){
+                        moves.push(new Move(i, player.id));
+                }
+        }
+        return moves;
+}
+
+Board.prototype.reset = function()
+{
+        for(let i=0; i<this.size*this.size; i++){
+                this.board[i] = EMPTY;
+                this.vboard[i] = null;
+        }
 }

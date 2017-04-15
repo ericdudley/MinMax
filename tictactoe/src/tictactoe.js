@@ -6,6 +6,11 @@ var CENTER_BOARD_SIZE = 100;
 var X = 1;
 var O = 2;
 var EMPTY = -1;
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function setup()
 {
         createCanvas(windowWidth,windowHeight);
@@ -38,5 +43,9 @@ function sizeChanged()
 
 function startGame()
 {
-        console.log("he");
+        var players = [];
+        players.push(new RandomPlayer(X));
+        players.push(new RandomPlayer(O));
+        var game = new Game(board, players);
+        game.play();
 }
