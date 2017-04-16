@@ -165,12 +165,12 @@ Board.prototype.getWinner = function(){
         return false;
 }
 
-Board.prototype.getAllMoves = function(player)
+Board.prototype.getAllMoves = function(player_id)
 {
         var moves = [];
         for(let i=0; i<this.size*this.size; i++){
                 if(this.board[i] == EMPTY){
-                        moves.push(new Move(i, player.id));
+                        moves.push(new Move(i, player_id));
                 }
         }
         return moves;

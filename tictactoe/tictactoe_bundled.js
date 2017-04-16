@@ -185,12 +185,12 @@ Board.prototype.getWinner = function(){
         return false;
 }
 
-Board.prototype.getAllMoves = function(player)
+Board.prototype.getAllMoves = function(player_id)
 {
         var moves = [];
         for(let i=0; i<this.size*this.size; i++){
                 if(this.board[i] == EMPTY){
-                        moves.push(new Move(i, player.id));
+                        moves.push(new Move(i, player_id));
                 }
         }
         return moves;
@@ -240,11 +240,87 @@ Game.prototype.play = function()
         }
 }
 
+function MinMaxPlayer(id, enemy_id)
+{
+        this.id = id;
+        this.enemy_id = enemy_id;
+}
+
+MinMaxPlayer.prototype.getMove = function(board){
+        console.log("get move");
+        var best_move = this.get_max_move(board.clone());
+        return best_move;
+};
+
+MinMaxPlayer.prototype.get_max_move = function(board)
+{
+        var max_move = {minmax:0};
+        for(let move of board.getAllMoves(this.id)){
+                var nboard = board.clone();
+                nboard.applyMove(move);
+                var terminal = this.terminalValue(nboard);
+                if(terminal != false){
+                        move.minmax = terminal;
+                        return move;
+                }
+                var nmove = this.get_min_move(nboard);
+                if(nmove.minmax > max_move.minmax){
+                        max_move = move.clone();
+                        max_move.minmax = nmove.minmax;
+                }
+        }
+        return max_move;
+}
+
+MinMaxPlayer.prototype.get_min_move = function(board)
+{
+        var min_move = {minmax:4};
+        for(let move of board.getAllMoves(this.enemy_id)){
+                var nboard = board.clone();
+                nboard.applyMove(move);
+                var terminal = this.terminalValue(nboard);
+                if(terminal != false){
+                        move.minmax = terminal;
+                        return move;
+                }
+                var nmove = this.get_max_move(nboard);
+                if(nmove.minmax < min_move.minmax){
+                        min_move = move.clone();
+                        min_move.minmax = nmove.minmax;
+                }
+        }
+        return min_move;
+}
+
+MinMaxPlayer.prototype.terminalValue = function(board)
+{
+        var winner = board.getWinner();
+        if(winner != false){
+                if(winner == this.id){
+                        return 3;
+                }
+                else{
+                        return 1;
+                }
+        }
+        if(winner == false && board.getAllMoves(this.id).length == 0){
+                return 2;
+        }
+        return false;
+}
+
 function Move(index, value)
 {
         this.index = index;
         this.value = value;
         this.minmax = 0;
+}
+
+Move.prototype.clone = function()
+{
+        var n = new Move(this.index, this.value);
+        n.minmax = this.minmax;
+        return n;
 }
 
 function Mover(x, y, ang, spring)
@@ -341,8 +417,13 @@ var X = 1;
 var O = 2;
 var EMPTY = -1;
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+function sleep(milliseconds) {
+  var start = new Date().getTime();
+  for (var i = 0; i < 1e7; i++) {
+    if ((new Date().getTime() - start) > milliseconds){
+      break;
+    }
+  }
 }
 
 function setup()
@@ -378,7 +459,7 @@ function sizeChanged()
 function startGame()
 {
         var players = [];
-        players.push(new RandomPlayer(X));
+        players.push(new MinMaxPlayer(X, O));
         players.push(new RandomPlayer(O));
         var game = new Game(board, players);
         game.play();
