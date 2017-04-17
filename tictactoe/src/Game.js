@@ -11,18 +11,15 @@ Game.prototype.play = function()
         var have_winner = false;
         while(have_winner == false){
                 for(let i = 0; i<this.players.length; i++){
-                        //console.log(this.board);
                         let player = this.players[i];
                         do{
                                 var move = player.getMove(this.board.clone());
-                        //        console.log(move);
                         }
                         while(this.board.isValidMove(move) == false);
                         this.board.applyMove(move);
                         var winner = this.board.getWinner();
                         if(winner){
                                 have_winner = true;
-                                console.log(winner);
                                 break;
                         }
 
@@ -32,4 +29,5 @@ Game.prototype.play = function()
                         }
                 }
         }
+        return this.board.getWinner();
 }

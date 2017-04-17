@@ -165,6 +165,11 @@ Board.prototype.getWinner = function(){
         return false;
 }
 
+Board.prototype.hasWinner = function()
+{
+        return this.getWinner() != false;
+}
+
 Board.prototype.getAllMoves = function(player_id)
 {
         var moves = [];

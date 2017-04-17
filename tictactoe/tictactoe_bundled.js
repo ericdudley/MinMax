@@ -185,6 +185,11 @@ Board.prototype.getWinner = function(){
         return false;
 }
 
+Board.prototype.hasWinner = function()
+{
+        return this.getWinner() != false;
+}
+
 Board.prototype.getAllMoves = function(player_id)
 {
         var moves = [];
@@ -217,18 +222,15 @@ Game.prototype.play = function()
         var have_winner = false;
         while(have_winner == false){
                 for(let i = 0; i<this.players.length; i++){
-                        //console.log(this.board);
                         let player = this.players[i];
                         do{
                                 var move = player.getMove(this.board.clone());
-                        //        console.log(move);
                         }
                         while(this.board.isValidMove(move) == false);
                         this.board.applyMove(move);
                         var winner = this.board.getWinner();
                         if(winner){
                                 have_winner = true;
-                                console.log(winner);
                                 break;
                         }
 
@@ -238,32 +240,36 @@ Game.prototype.play = function()
                         }
                 }
         }
+        return this.board.getWinner();
 }
 
-function MinMaxPlayer(id, enemy_id)
+function MinMaxPlayer(id)
 {
         this.id = id;
-        this.enemy_id = enemy_id;
+        if(id == X){
+                this.enemy_id = O;
+        }
+        else{
+                this.enemy_id = X;
+        }
 }
 
 MinMaxPlayer.prototype.getMove = function(board){
-        console.log("get move");
-        var best_move = this.get_max_move(board.clone());
+        var best_move = this.get_max_move(board.clone(), null);
         return best_move;
 };
 
-MinMaxPlayer.prototype.get_max_move = function(board)
+MinMaxPlayer.prototype.get_max_move = function(board, pmove)
 {
-        var max_move = {minmax:0};
+        if(this.isTerminal(board)){
+                pmove.minmax = this.terminalValue(board);
+                return pmove;
+        }
+        var max_move = {minmax:-100};
         for(let move of board.getAllMoves(this.id)){
                 var nboard = board.clone();
                 nboard.applyMove(move);
-                var terminal = this.terminalValue(nboard);
-                if(terminal != false){
-                        move.minmax = terminal;
-                        return move;
-                }
-                var nmove = this.get_min_move(nboard);
+                var nmove = this.get_min_move(nboard, move);
                 if(nmove.minmax > max_move.minmax){
                         max_move = move.clone();
                         max_move.minmax = nmove.minmax;
@@ -272,18 +278,17 @@ MinMaxPlayer.prototype.get_max_move = function(board)
         return max_move;
 }
 
-MinMaxPlayer.prototype.get_min_move = function(board)
+MinMaxPlayer.prototype.get_min_move = function(board, pmove)
 {
-        var min_move = {minmax:4};
+        if(this.isTerminal(board)){
+                pmove.minmax = this.terminalValue(board);
+                return pmove;
+        }
+        var min_move = {minmax:100};
         for(let move of board.getAllMoves(this.enemy_id)){
                 var nboard = board.clone();
                 nboard.applyMove(move);
-                var terminal = this.terminalValue(nboard);
-                if(terminal != false){
-                        move.minmax = terminal;
-                        return move;
-                }
-                var nmove = this.get_max_move(nboard);
+                var nmove = this.get_max_move(nboard, move);
                 if(nmove.minmax < min_move.minmax){
                         min_move = move.clone();
                         min_move.minmax = nmove.minmax;
@@ -294,8 +299,8 @@ MinMaxPlayer.prototype.get_min_move = function(board)
 
 MinMaxPlayer.prototype.terminalValue = function(board)
 {
-        var winner = board.getWinner();
-        if(winner != false){
+        if(board.hasWinner()){
+                var winner = board.getWinner();
                 if(winner == this.id){
                         return 3;
                 }
@@ -303,10 +308,18 @@ MinMaxPlayer.prototype.terminalValue = function(board)
                         return 1;
                 }
         }
-        if(winner == false && board.getAllMoves(this.id).length == 0){
-                return 2;
+        else{
+                if(board.getAllMoves(X).length == 0){
+                        return 2;
+                }
         }
-        return false;
+        return 23;
+}
+
+MinMaxPlayer.prototype.isTerminal = function(board)
+{
+        var winner = board.hasWinner();
+        return winner || board.getAllMoves(X).length == 0;
 }
 
 function Move(index, value)
@@ -382,31 +395,9 @@ function RandomPlayer(id)
 }
 
 RandomPlayer.prototype.getMove = function(board){
-        var moves = board.getAllMoves(this);
+        var moves = board.getAllMoves(this.id);
         return moves[floor(random(0, moves.length))];
 };
-
-function XPiece(x, y, size)
-{
-        this.super = Mover.prototype;
-        this.super.constructor.apply(this, [x, y, 0, SPRING]);
-        this.size = size;
-}
-
-XPiece.prototype = Object.create(Mover.prototype);
-XPiece.prototype.constructor = XPiece;
-
-XPiece.prototype.draw = function(){
-        push();
-        translate(this.x, this.y);
-        fill(255);
-        rectMode(CENTER);
-        rotate(PI/4);
-        rect(0, 0, this.size/8, this.size);
-        rotate(-PI/2);
-        rect(0, 0, this.size/8, this.size);
-        pop();
-}
 
 var board;
 var sizeSlider;
@@ -416,6 +407,11 @@ var CENTER_BOARD_SIZE = 100;
 var X = 1;
 var O = 2;
 var EMPTY = -1;
+var PLAYER_CHOICES = {
+        "Random": RandomPlayer,
+        "MinMax": MinMaxPlayer
+};
+
 
 function sleep(milliseconds) {
   var start = new Date().getTime();
@@ -431,11 +427,22 @@ function setup()
         createCanvas(windowWidth,windowHeight);
         CENTER_BOARD_SIZE = min(windowWidth, windowHeight)*0.6;
         board = new Board(3);
-        board.initView(windowWidth/2,windowHeight/2, CENTER_BOARD_SIZE);
+        board.initView(windowWidth/2,windowHeight/2 * 0.9, CENTER_BOARD_SIZE);
 
         sizeSlider = createSlider(3,9,3);
-        sizeSlider.position(windowWidth/2 - sizeSlider.width/2, windowHeight-100);
+        sizeSlider.position(windowWidth/2 - sizeSlider.width/2, windowHeight-180);
         sizeSlider.changed(sizeChanged);
+
+        xSelect = createSelect();
+        oSelect = createSelect();
+
+        for(let ch in PLAYER_CHOICES){
+                xSelect.option(ch);
+                oSelect.option(ch);
+        }
+
+        xSelect.position(windowWidth/2 - xSelect.width*3, windowHeight-130);
+        oSelect.position(windowWidth/2 + oSelect.width*2, windowHeight-130);
 
         playButton = createButton("Start game");
         playButton.position(windowWidth/2  - playButton.width/2, windowHeight-50);
@@ -459,8 +466,30 @@ function sizeChanged()
 function startGame()
 {
         var players = [];
-        players.push(new MinMaxPlayer(X, O));
-        players.push(new RandomPlayer(O));
+        players.push(new PLAYER_CHOICES[xSelect.value()](X));
+        players.push(new PLAYER_CHOICES[oSelect.value()](O));
         var game = new Game(board, players);
-        game.play();
+        return game.play();
+}
+
+function XPiece(x, y, size)
+{
+        this.super = Mover.prototype;
+        this.super.constructor.apply(this, [x, y, 0, SPRING]);
+        this.size = size;
+}
+
+XPiece.prototype = Object.create(Mover.prototype);
+XPiece.prototype.constructor = XPiece;
+
+XPiece.prototype.draw = function(){
+        push();
+        translate(this.x, this.y);
+        fill(255);
+        rectMode(CENTER);
+        rotate(PI/4);
+        rect(0, 0, this.size/8, this.size);
+        rotate(-PI/2);
+        rect(0, 0, this.size/8, this.size);
+        pop();
 }
