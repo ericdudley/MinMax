@@ -2,10 +2,11 @@ function Game (board, players) {
   this.board = board
   this.origBoard = board.clone()
   this.players = players
+  this.winner_id;
 }
 
 Game.prototype.play = function () {
-  this.board.reset()
+  this.board.resetLogic()
   var have_winner = false
   while (have_winner == false) {
     for (let i = 0; i < this.players.length; i++) {
@@ -15,13 +16,12 @@ Game.prototype.play = function () {
       }
       while (this.board.isValidMove(move) == false)
       this.board.applyMove(move)
-      var winner = this.board.getWinner()
-      if (winner) {
+      if (this.board.hasWinner()) {
         have_winner = true
         break
       }
 
-      if (this.board.getAllMoves(this.players[i]).length == 0) {
+      if (this.board.getAllMoves(this.players[i].id).length == 0) {
         have_winner = true
         break
       }
