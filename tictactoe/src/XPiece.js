@@ -1,3 +1,9 @@
+/**
+ * XPiece Mover.
+ * @param {int} x      Initial x position.
+ * @param {int} y      Initial y position.
+ * @param {int} size Bar length.
+ */
 function XPiece (x, y, size) {
   this.super = Mover.prototype
   this.super.constructor.apply(this, [x, y, 0, SPRING])
@@ -7,6 +13,9 @@ function XPiece (x, y, size) {
 XPiece.prototype = Object.create(Mover.prototype)
 XPiece.prototype.constructor = XPiece
 
+/**
+ * Draws two 45deg bars with length size.
+ */
 XPiece.prototype.draw = function () {
   push()
   translate(this.x, this.y)

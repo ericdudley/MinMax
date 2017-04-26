@@ -1,3 +1,6 @@
+/**
+ * Driver code for tictactoe game in p5.
+ */
 var board
 var sizeSlider
 var playButton
@@ -11,15 +14,9 @@ var PLAYER_CHOICES = {
   'MinMax': MinMaxPlayer
 }
 
-function sleep (milliseconds) {
-  var start = new Date().getTime()
-  for (var i = 0; i < 1e7; i++) {
-    if ((new Date().getTime() - start) > milliseconds) {
-      break
-    }
-  }
-}
-
+/**
+ * Setup visual objects.
+ */
 function setup () {
   createCanvas(windowWidth, windowHeight)
   CENTER_BOARD_SIZE = min(windowWidth, windowHeight) * 0.6
@@ -46,6 +43,9 @@ function setup () {
   playButton.mousePressed(startGame)
 }
 
+/**
+ * Draw 60 times a second.
+ */
 function draw () {
   background(51)
   fill(255)
@@ -53,11 +53,18 @@ function draw () {
   board.draw()
 }
 
+/**
+ * Callback for board size slider changed.
+ */
 function sizeChanged () {
   board = new Board(sizeSlider.value())
   board.initView(windowWidth / 2, windowHeight / 2, CENTER_BOARD_SIZE)
 }
 
+/**
+ * Callback for start game button.
+ * @return {int} Winning player id.
+ */
 function startGame () {
   var players = []
   players.push(new PLAYER_CHOICES[xSelect.value()](X))

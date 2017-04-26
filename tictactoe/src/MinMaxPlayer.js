@@ -1,3 +1,7 @@
+/**
+ * A TicTacToe player that uses minmax algorithm.
+ * @param {int} id Player id
+ */
 function MinMaxPlayer (id) {
   this.id = id
   if (id == X) {
@@ -7,11 +11,22 @@ function MinMaxPlayer (id) {
   }
 }
 
+/**
+ * Standard player move.
+ * @param  {Board} board Current state of board.
+ * @return {Move}       Move to be played.
+ */
 MinMaxPlayer.prototype.getMove = function (board) {
   var best_move = this.get_max_move(board.clone(), null)
   return best_move
 }
 
+/**
+ * Returns move from a max node config.
+ * @param  {Board} board Current board.
+ * @param  {Move} pmove Last move to be played.
+ * @return {Move}       Maximum minmax value move.
+ */
 MinMaxPlayer.prototype.get_max_move = function (board, pmove) {
   if (this.isTerminal(board)) {
     pmove.minmax = this.terminalValue(board)
@@ -30,6 +45,12 @@ MinMaxPlayer.prototype.get_max_move = function (board, pmove) {
   return max_move
 }
 
+/**
+ * Returns move from a min node config.
+ * @param  {Board} board Current board.
+ * @param  {Move} pmove Last move to be played.
+ * @return {Move}       Minimum minmax value move.
+ */
 MinMaxPlayer.prototype.get_min_move = function (board, pmove) {
   if (this.isTerminal(board)) {
     pmove.minmax = this.terminalValue(board)
@@ -48,6 +69,12 @@ MinMaxPlayer.prototype.get_min_move = function (board, pmove) {
   return min_move
 }
 
+
+/**
+ * Calculates minmax value of a terminal board state.
+ * @param  {Board} board Current board state.
+ * @return {int}       Minmax value.
+ */
 MinMaxPlayer.prototype.terminalValue = function (board) {
   if (board.hasWinner()) {
     var winner = board.getWinner()
@@ -64,6 +91,11 @@ MinMaxPlayer.prototype.terminalValue = function (board) {
   return 23
 }
 
+/**
+ * Returns whether or not board is terminal.
+ * @param  {Board} board Current board state.
+ * @return {Boolean}       
+ */
 MinMaxPlayer.prototype.isTerminal = function (board) {
   var winner = board.hasWinner()
   return winner || board.getAllMoves(X).length == 0

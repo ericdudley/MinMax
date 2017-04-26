@@ -301,6 +301,10 @@ Game.prototype.play = function () {
   return this.board.getWinner()
 }
 
+/**
+ * A TicTacToe player that uses minmax algorithm.
+ * @param {int} id Player id
+ */
 function MinMaxPlayer (id) {
   this.id = id
   if (id == X) {
@@ -310,11 +314,22 @@ function MinMaxPlayer (id) {
   }
 }
 
+/**
+ * Standard player move.
+ * @param  {Board} board Current state of board.
+ * @return {Move}       Move to be played.
+ */
 MinMaxPlayer.prototype.getMove = function (board) {
   var best_move = this.get_max_move(board.clone(), null)
   return best_move
 }
 
+/**
+ * Returns move from a max node config.
+ * @param  {Board} board Current board.
+ * @param  {Move} pmove Last move to be played.
+ * @return {Move}       Maximum minmax value move.
+ */
 MinMaxPlayer.prototype.get_max_move = function (board, pmove) {
   if (this.isTerminal(board)) {
     pmove.minmax = this.terminalValue(board)
@@ -333,6 +348,12 @@ MinMaxPlayer.prototype.get_max_move = function (board, pmove) {
   return max_move
 }
 
+/**
+ * Returns move from a min node config.
+ * @param  {Board} board Current board.
+ * @param  {Move} pmove Last move to be played.
+ * @return {Move}       Minimum minmax value move.
+ */
 MinMaxPlayer.prototype.get_min_move = function (board, pmove) {
   if (this.isTerminal(board)) {
     pmove.minmax = this.terminalValue(board)
@@ -351,6 +372,12 @@ MinMaxPlayer.prototype.get_min_move = function (board, pmove) {
   return min_move
 }
 
+
+/**
+ * Calculates minmax value of a terminal board state.
+ * @param  {Board} board Current board state.
+ * @return {int}       Minmax value.
+ */
 MinMaxPlayer.prototype.terminalValue = function (board) {
   if (board.hasWinner()) {
     var winner = board.getWinner()
@@ -367,23 +394,44 @@ MinMaxPlayer.prototype.terminalValue = function (board) {
   return 23
 }
 
+/**
+ * Returns whether or not board is terminal.
+ * @param  {Board} board Current board state.
+ * @return {Boolean}       
+ */
 MinMaxPlayer.prototype.isTerminal = function (board) {
   var winner = board.hasWinner()
   return winner || board.getAllMoves(X).length == 0
 }
 
+/**
+ * A tictactoe move.
+ * @param {int} index Position in board {0..size*size}
+ * @param {int} value Player id.
+ */
 function Move (index, value) {
   this.index = index
   this.value = value
   this.minmax = 0
 }
 
+/**
+ * Creates deep copy of this.
+ * @return {Move} Deep copy of this.
+ */
 Move.prototype.clone = function () {
   var n = new Move(this.index, this.value)
   n.minmax = this.minmax
   return n
 }
 
+/**
+ * Visual object that is attracted towards a desired position/angle.
+ * @param {int} x      Initial x position.
+ * @param {int} y      Initial y position.
+ * @param {float} ang    Initial angle.
+ * @param {float} spring Rate of attraction {0..1}.
+ */
 function Mover (x, y, ang, spring) {
   this.x = x
   this.dx = x
@@ -394,12 +442,21 @@ function Mover (x, y, ang, spring) {
   this.spring = spring
 }
 
+/**
+ * Sets desired position/angle.
+ * @param {int} x      Desired x position.
+ * @param {int} y      Desired y position.
+ * @param {float} ang    Desired angle.
+ */
 Mover.prototype.moveTo = function (x, y, ang) {
   this.dx = x
   this.dy = y
   this.dang = ang
 }
 
+/**
+ * Moves one tick towards desired position/angle.
+ */
 Mover.prototype.update = function () {
   var scalar = this.spring
   this.x += (this.dx - this.x) * scalar
@@ -407,6 +464,10 @@ Mover.prototype.update = function () {
   this.ang += (this.dang - this.ang) * scalar
 }
 
+/**
+ * Draws to screen, by default a 20x100 rectangle.
+ * @return {[type]} [description]
+ */
 Mover.prototype.draw = function () {
   push()
   translate(this.x, this.y)
@@ -416,6 +477,12 @@ Mover.prototype.draw = function () {
   pop()
 }
 
+/**
+ * OPiece Mover.
+ * @param {int} x      Initial x position.
+ * @param {int} y      Initial y position.
+ * @param {float} size Diameter.
+ */
 function OPiece (x, y, size) {
   this.super = Mover.prototype
   this.super.constructor.apply(this, [x, y, 0, SPRING])
@@ -425,6 +492,9 @@ function OPiece (x, y, size) {
 OPiece.prototype = Object.create(Mover.prototype)
 OPiece.prototype.constructor = OPiece
 
+/**
+ * Draws O shape with center x, y, diameter of size.
+ */
 OPiece.prototype.draw = function () {
   push()
   translate(this.x, this.y)
@@ -435,15 +505,30 @@ OPiece.prototype.draw = function () {
   pop()
 }
 
+/**
+ * Random player for tictactoe.
+ * @param {int} id Player id.
+ */
 function RandomPlayer (id) {
   this.id = id
 }
 
+/**
+ * Return move to be played.
+ * @param  {Board} board Current board state.
+ * @return {Move}       Random legal move.
+ */
 RandomPlayer.prototype.getMove = function (board) {
   var moves = board.getAllMoves(this.id)
   return moves[floor(random(0, moves.length))]
 }
 
+/**
+ * XPiece Mover.
+ * @param {int} x      Initial x position.
+ * @param {int} y      Initial y position.
+ * @param {int} size Bar length.
+ */
 function XPiece (x, y, size) {
   this.super = Mover.prototype
   this.super.constructor.apply(this, [x, y, 0, SPRING])
@@ -453,6 +538,9 @@ function XPiece (x, y, size) {
 XPiece.prototype = Object.create(Mover.prototype)
 XPiece.prototype.constructor = XPiece
 
+/**
+ * Draws two 45deg bars with length size.
+ */
 XPiece.prototype.draw = function () {
   push()
   translate(this.x, this.y)
@@ -465,6 +553,9 @@ XPiece.prototype.draw = function () {
   pop()
 }
 
+/**
+ * Driver code for tictactoe game in p5.
+ */
 var board
 var sizeSlider
 var playButton
@@ -478,15 +569,9 @@ var PLAYER_CHOICES = {
   'MinMax': MinMaxPlayer
 }
 
-function sleep (milliseconds) {
-  var start = new Date().getTime()
-  for (var i = 0; i < 1e7; i++) {
-    if ((new Date().getTime() - start) > milliseconds) {
-      break
-    }
-  }
-}
-
+/**
+ * Setup visual objects.
+ */
 function setup () {
   createCanvas(windowWidth, windowHeight)
   CENTER_BOARD_SIZE = min(windowWidth, windowHeight) * 0.6
@@ -513,6 +598,9 @@ function setup () {
   playButton.mousePressed(startGame)
 }
 
+/**
+ * Draw 60 times a second.
+ */
 function draw () {
   background(51)
   fill(255)
@@ -520,11 +608,18 @@ function draw () {
   board.draw()
 }
 
+/**
+ * Callback for board size slider changed.
+ */
 function sizeChanged () {
   board = new Board(sizeSlider.value())
   board.initView(windowWidth / 2, windowHeight / 2, CENTER_BOARD_SIZE)
 }
 
+/**
+ * Callback for start game button.
+ * @return {int} Winning player id.
+ */
 function startGame () {
   var players = []
   players.push(new PLAYER_CHOICES[xSelect.value()](X))
