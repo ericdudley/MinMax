@@ -93,6 +93,9 @@ Board.prototype.clone = function () {
   for (let i = 0; i < this.size * this.size; i++) {
     b.board[i] = this.board[i]
   }
+  b.x = this.x
+  b.y = this.y
+  b.length = this.length
   return b
 }
 
@@ -125,7 +128,7 @@ Board.prototype.applyMove = function (move) {
  * @return {boolean}      Whether or not move is valid.
  */
 Board.prototype.isValidMove = function (move) {
-  return move.index >= 0 && move.index < this.size * this.size &&
+  return  move != null && move.index >= 0 && move.index < this.size * this.size &&
                 (move.value == X || move.value == O) &&
                 this.board[move.index] == EMPTY
 }
@@ -178,7 +181,7 @@ Board.prototype.getWinner = function () {
   }
 
   // Check up diagonal
-  winner = this.board[0]
+  winner = this.board[this.size - 1]
   found_winner = true
   for (let i = this.size - 1; i < this.size * this.size - 1; i += this.size - 1) {
     if (this.board[i] != winner || winner == EMPTY) {
@@ -235,4 +238,23 @@ Board.prototype.resetVisual = function () {
     this.vboard[i] = null
   }
   this.view_initialized = false;
+}
+
+/**
+ * Calculates move from coordinates.
+ * @param  {float} x
+ * @param  {float} y
+ * @param  {int} player_idd
+ */
+Board.prototype.getMoveFromCoordinates = function(x, y, player_id)
+{
+  let ulx = this.x - this.length / 2
+  let uly = this.y - this.length / 2
+  let dx = x - ulx
+  let dy = y - uly
+  let unit_size = this.length / this.size
+  let xindex = floor(dx / unit_size)
+  let yindex = floor(dy / unit_size)
+  let rindex = xindex + yindex * this.size
+  return new Move(rindex, player_id)
 }

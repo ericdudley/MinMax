@@ -125,6 +125,9 @@ Board.prototype.clone = function () {
   for (let i = 0; i < this.size * this.size; i++) {
     b.board[i] = this.board[i]
   }
+  b.x = this.x
+  b.y = this.y
+  b.length = this.length
   return b
 }
 
@@ -157,7 +160,7 @@ Board.prototype.applyMove = function (move) {
  * @return {boolean}      Whether or not move is valid.
  */
 Board.prototype.isValidMove = function (move) {
-  return move.index >= 0 && move.index < this.size * this.size &&
+  return  move != null && move.index >= 0 && move.index < this.size * this.size &&
                 (move.value == X || move.value == O) &&
                 this.board[move.index] == EMPTY
 }
@@ -210,7 +213,7 @@ Board.prototype.getWinner = function () {
   }
 
   // Check up diagonal
-  winner = this.board[0]
+  winner = this.board[this.size - 1]
   found_winner = true
   for (let i = this.size - 1; i < this.size * this.size - 1; i += this.size - 1) {
     if (this.board[i] != winner || winner == EMPTY) {
@@ -269,50 +272,127 @@ Board.prototype.resetVisual = function () {
   this.view_initialized = false;
 }
 
-function Game (board, players) {
-  this.board = board
-  this.origBoard = board.clone()
-  this.players = players
-  this.winner_id;
+/**
+ * Calculates move from coordinates.
+ * @param  {float} x
+ * @param  {float} y
+ * @param  {int} player_idd
+ */
+Board.prototype.getMoveFromCoordinates = function(x, y, player_id)
+{
+  let ulx = this.x - this.length / 2
+  let uly = this.y - this.length / 2
+  let dx = x - ulx
+  let dy = y - uly
+  let unit_size = this.length / this.size
+  let xindex = floor(dx / unit_size)
+  let yindex = floor(dy / unit_size)
+  let rindex = xindex + yindex * this.size
+  return new Move(rindex, player_id)
 }
 
-Game.prototype.play = function () {
-  this.board.resetLogic()
-  var have_winner = false
-  while (have_winner == false) {
-    for (let i = 0; i < this.players.length; i++) {
-      let player = this.players[i]
-      do {
-        var move = player.getMove(this.board.clone())
-      }
-      while (this.board.isValidMove(move) == false)
-      this.board.applyMove(move)
-      if (this.board.hasWinner()) {
-        have_winner = true
-        break
-      }
+/**
+ * Instance of the game of tictactoe.
+ * @param {Board} board Initial board state.
+ */
+function Game (board) {
+  this.board = board
+  this.origBoard = board.clone()
+  this.curr_turn = 0
+  this.players = []
+  this.winner_id;
+  this.have_winner = false;
+}
 
-      if (this.board.getAllMoves(this.players[i].id).length == 0) {
-        have_winner = true
-        break
-      }
+/**
+ * Start game calllbacks.
+ */
+Game.prototype.start = function () {
+  this.board.resetLogic()
+  this.have_winner = false
+  this.curr_turn = 0
+  this.players[this.curr_turn].getMove(this.board.clone())
+}
+
+/**
+ * Callback by players. Checks validity of move and increments curr_turn.
+ * @param  {Move} move Move to be played.
+ */
+Game.prototype.playMove = function(move) {
+  if( !this.have_winner && move != null && move.value == this.players[this.curr_turn].id && this.board.isValidMove(move)){
+    this.board.applyMove(move)
+    if (this.board.hasWinner()) {
+      this.have_winner = true
+      this.winner_id = this.board.getWinner();
+    }
+    else{
+      let game = this
+      setTimeout(function(){
+        game.curr_turn++
+        if(game.curr_turn == game.players.length){
+          game.curr_turn = 0
+        }
+        game.players[game.curr_turn].getMove(game.board.clone())
+      }, 1000)
     }
   }
-  return this.board.getWinner()
+}
+
+/**
+ * Adds player to list of players.
+ * @param  {Player} player Player to add.
+ */
+Game.prototype.addPlayer = function(player)
+{
+  this.players.push(player)
+}
+
+/**
+ * Human player for tictactoe.
+ * @param {int} id Player id.
+ */
+function HumanPlayer (id, game) {
+  this.super = Player.prototype
+  this.super.constructor.apply(this, [id, game])
+  this.board;
+  var self = this
+  document.addEventListener("click", function(){
+    console.log("TEST!")
+    if(self.game != null && self.board != null){
+      self.game.playMove(self.board.getMoveFromCoordinates(mouseX, mouseY, self.id))
+    }
+  }, false)
+}
+
+HumanPlayer.prototype = Object.create(Player.prototype)
+HumanPlayer.prototype.constructor = HumanPlayer
+
+/**
+ * Do nothing.
+ * @param  {Board} board Current board state.
+ */
+HumanPlayer.prototype.getMove = function (board) {
+  // Do nothing because player calculates move.
+  this.board = board.clone()
 }
 
 /**
  * A TicTacToe player that uses minmax algorithm.
  * @param {int} id Player id
  */
-function MinMaxPlayer (id) {
+function MinMaxPlayer (id, game) {
   this.id = id
   if (id == X) {
     this.enemy_id = O
   } else {
     this.enemy_id = X
   }
+  this.super = Player.prototype
+  this.super.constructor.apply(this, [id, game])
 }
+
+MinMaxPlayer.prototype = Object.create(Player.prototype)
+MinMaxPlayer.prototype.constructor = MinMaxPlayer
 
 /**
  * Standard player move.
@@ -321,7 +401,7 @@ function MinMaxPlayer (id) {
  */
 MinMaxPlayer.prototype.getMove = function (board) {
   var best_move = this.get_max_move(board.clone(), null)
-  return best_move
+  this.game.playMove(best_move)
 }
 
 /**
@@ -397,7 +477,7 @@ MinMaxPlayer.prototype.terminalValue = function (board) {
 /**
  * Returns whether or not board is terminal.
  * @param  {Board} board Current board state.
- * @return {Boolean}       
+ * @return {Boolean}
  */
 MinMaxPlayer.prototype.isTerminal = function (board) {
   var winner = board.hasWinner()
@@ -506,21 +586,40 @@ OPiece.prototype.draw = function () {
 }
 
 /**
- * Random player for tictactoe.
- * @param {int} id Player id.
+ * Generic player for TicTacToe.
+ * @param {int} id   Player id.
+ * @param {Game} game Game that the player belongs to.
  */
-function RandomPlayer (id) {
-  this.id = id
+function Player(id, game)
+{
+  this.id = id;
+  this.game = game;
 }
 
 /**
- * Return move to be played.
+ * Calculate move and call game.playMove().
+ * By default plays random move.
  * @param  {Board} board Current board state.
- * @return {Move}       Random legal move.
  */
+Player.prototype.getMove = function (board) {
+  var moves = board.getAllMoves(this.id)
+  this.game.playMove(moves[floor(random(0, moves.length))]);
+}
+
+/**
+ * Random player for tictactoe.
+ */
+function RandomPlayer (id, game) {
+    this.super = Player.prototype
+    this.super.constructor.apply(this, [id, game])
+}
+
+RandomPlayer.prototype = Object.create(Player.prototype)
+RandomPlayer.prototype.constructor = RandomPlayer
+
 RandomPlayer.prototype.getMove = function (board) {
   var moves = board.getAllMoves(this.id)
-  return moves[floor(random(0, moves.length))]
+  this.game.playMove(moves[floor(random(0, moves.length))]);
 }
 
 /**
@@ -566,7 +665,8 @@ var O = 2
 var EMPTY = -1
 var PLAYER_CHOICES = {
   'Random': RandomPlayer,
-  'MinMax': MinMaxPlayer
+  'MinMax': MinMaxPlayer,
+  'Human': HumanPlayer
 }
 
 /**
@@ -621,11 +721,8 @@ function sizeChanged () {
  * @return {int} Winning player id.
  */
 function startGame () {
-  var players = []
-  players.push(new PLAYER_CHOICES[xSelect.value()](X))
-  players.push(new PLAYER_CHOICES[oSelect.value()](O))
-  var game = new Game(board, players)
-  var winner = game.play()
-  console.log(winner)
-  return winner
+  var game = new Game(board)
+  game.addPlayer(new PLAYER_CHOICES[xSelect.value()](X, game))
+  game.addPlayer(new PLAYER_CHOICES[oSelect.value()](O, game))
+  game.start()
 }

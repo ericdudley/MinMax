@@ -11,7 +11,8 @@ var O = 2
 var EMPTY = -1
 var PLAYER_CHOICES = {
   'Random': RandomPlayer,
-  'MinMax': MinMaxPlayer
+  'MinMax': MinMaxPlayer,
+  'Human': HumanPlayer
 }
 
 /**
@@ -66,11 +67,8 @@ function sizeChanged () {
  * @return {int} Winning player id.
  */
 function startGame () {
-  var players = []
-  players.push(new PLAYER_CHOICES[xSelect.value()](X))
-  players.push(new PLAYER_CHOICES[oSelect.value()](O))
-  var game = new Game(board, players)
-  var winner = game.play()
-  console.log(winner)
-  return winner
+  var game = new Game(board)
+  game.addPlayer(new PLAYER_CHOICES[xSelect.value()](X, game))
+  game.addPlayer(new PLAYER_CHOICES[oSelect.value()](O, game))
+  game.start()
 }

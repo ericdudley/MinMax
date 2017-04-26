@@ -2,14 +2,19 @@
  * A TicTacToe player that uses minmax algorithm.
  * @param {int} id Player id
  */
-function MinMaxPlayer (id) {
+function MinMaxPlayer (id, game) {
   this.id = id
   if (id == X) {
     this.enemy_id = O
   } else {
     this.enemy_id = X
   }
+  this.super = Player.prototype
+  this.super.constructor.apply(this, [id, game])
 }
+
+MinMaxPlayer.prototype = Object.create(Player.prototype)
+MinMaxPlayer.prototype.constructor = MinMaxPlayer
 
 /**
  * Standard player move.
@@ -18,7 +23,7 @@ function MinMaxPlayer (id) {
  */
 MinMaxPlayer.prototype.getMove = function (board) {
   var best_move = this.get_max_move(board.clone(), null)
-  return best_move
+  this.game.playMove(best_move)
 }
 
 /**
@@ -94,7 +99,7 @@ MinMaxPlayer.prototype.terminalValue = function (board) {
 /**
  * Returns whether or not board is terminal.
  * @param  {Board} board Current board state.
- * @return {Boolean}       
+ * @return {Boolean}
  */
 MinMaxPlayer.prototype.isTerminal = function (board) {
   var winner = board.hasWinner()
