@@ -9,9 +9,11 @@ var CENTER_BOARD_SIZE = 100
 var X = 1
 var O = 2
 var EMPTY = -1
+var MOVE_DELAY = 100
 var PLAYER_CHOICES = {
   'Random': RandomPlayer,
   'MinMax': MinMaxPlayer,
+  'AlphaBeta': AlphaBetaPlayer,
   'Human': HumanPlayer
 }
 

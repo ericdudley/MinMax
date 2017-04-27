@@ -40,7 +40,7 @@ Game.prototype.playMove = function(move) {
           game.curr_turn = 0
         }
         game.players[game.curr_turn].getMove(game.board.clone())
-      }, 1000)
+      }, MOVE_DELAY)
     }
   }
 }

@@ -1,8 +1,8 @@
 /**
- * A TicTacToe player that uses minmax algorithm.
+ * A TicTacToe player that uses minmax algorithm with alpha beta pruning.
  * @param {int} id Player id
  */
-function MinMaxPlayer (id, game) {
+function AlphaBetaPlayer (id, game) {
   this.id = id
   if (id == X) {
     this.enemy_id = O
@@ -13,16 +13,16 @@ function MinMaxPlayer (id, game) {
   this.super.constructor.apply(this, [id, game])
 }
 
-MinMaxPlayer.prototype = Object.create(Player.prototype)
-MinMaxPlayer.prototype.constructor = MinMaxPlayer
+AlphaBetaPlayer.prototype = Object.create(Player.prototype)
+AlphaBetaPlayer.prototype.constructor = AlphaBetaPlayer
 
 /**
  * Standard player move.
  * @param  {Board} board Current state of board.
  * @return {Move}       Move to be played.
  */
-MinMaxPlayer.prototype.getMove = function (board) {
-  var best_move = this.get_max_move(board.clone(), null)
+AlphaBetaPlayer.prototype.getMove = function (board) {
+  var best_move = this.get_max_move(board.clone(), null, -Infinity, Infinity)
   this.game.playMove(best_move)
 }
 
@@ -32,7 +32,7 @@ MinMaxPlayer.prototype.getMove = function (board) {
  * @param  {Move} pmove Last move to be played.
  * @return {Move}       Maximum minmax value move.
  */
-MinMaxPlayer.prototype.get_max_move = function (board, pmove) {
+AlphaBetaPlayer.prototype.get_max_move = function (board, pmove, a, b) {
   if (this.isTerminal(board)) {
     pmove.minmax = this.terminalValue(board)
     return pmove
@@ -41,11 +41,15 @@ MinMaxPlayer.prototype.get_max_move = function (board, pmove) {
   for (let move of board.getAllMoves(this.id)) {
     var nboard = board.clone()
     nboard.applyMove(move)
-    var nmove = this.get_min_move(nboard, move)
+    var nmove = this.get_min_move(nboard, move, a, b)
     if (nmove.minmax > max_move.minmax) {
       max_move = move.clone()
       max_move.minmax = nmove.minmax
     }
+    if(max_move.minmax >= b){
+      break
+    }
+    a = max(a, max_move.minmax)
   }
   return max_move
 }
@@ -56,7 +60,7 @@ MinMaxPlayer.prototype.get_max_move = function (board, pmove) {
  * @param  {Move} pmove Last move to be played.
  * @return {Move}       Minimum minmax value move.
  */
-MinMaxPlayer.prototype.get_min_move = function (board, pmove) {
+AlphaBetaPlayer.prototype.get_min_move = function (board, pmove, a, b) {
   if (this.isTerminal(board)) {
     pmove.minmax = this.terminalValue(board)
     return pmove
@@ -65,11 +69,15 @@ MinMaxPlayer.prototype.get_min_move = function (board, pmove) {
   for (let move of board.getAllMoves(this.enemy_id)) {
     var nboard = board.clone()
     nboard.applyMove(move)
-    var nmove = this.get_max_move(nboard, move)
+    var nmove = this.get_max_move(nboard, move, a, b)
     if (nmove.minmax < min_move.minmax) {
       min_move = move.clone()
       min_move.minmax = nmove.minmax
     }
+    if(min_move.minmax <= a){
+      break
+    }
+    b = min(b, min_move.minmax)
   }
   return min_move
 }
@@ -80,7 +88,7 @@ MinMaxPlayer.prototype.get_min_move = function (board, pmove) {
  * @param  {Board} board Current board state.
  * @return {int}       Minmax value.
  */
-MinMaxPlayer.prototype.terminalValue = function (board) {
+AlphaBetaPlayer.prototype.terminalValue = function (board) {
   if (board.hasWinner()) {
     var winner = board.getWinner()
     if (winner == this.id) {
@@ -101,7 +109,7 @@ MinMaxPlayer.prototype.terminalValue = function (board) {
  * @param  {Board} board Current board state.
  * @return {Boolean}
  */
-MinMaxPlayer.prototype.isTerminal = function (board) {
+AlphaBetaPlayer.prototype.isTerminal = function (board) {
   var winner = board.hasWinner()
   return winner || board.getAllMoves(X).length == 0
 }
