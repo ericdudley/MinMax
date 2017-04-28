@@ -9,11 +9,12 @@ var OPIECE_SCALE = 0.7 // Visual scale
  */
 function Board (size) {
   this.size = size
+  this.sizesq = size * size
   this.board = [] // Logical board
   this.vboard = [] // Visual object board
   this.bars = [] // Visual board bars
   this.view_initialized = false;
-  for (let i = 0; i < this.size * this.size; i++) {
+  for (let i = 0; i < this.sizesq; i++) {
     this.board[i] = EMPTY
   }
 }
@@ -41,7 +42,7 @@ Board.prototype.initView = function (x, y, length) {
     }
   }
   // Initialize vboard
-  for (let i = 0; i < this.size * this.size; i++) {
+  for (let i = 0; i < this.sizesq; i++) {
     if (this.board[i] == X) {
       this.vboard[i] = (new XPiece(x, y, XPIECE_SCALE * (length / this.size)))
     } else if (this.board[i] == O) {
@@ -66,7 +67,7 @@ Board.prototype.draw = function () {
   }
   // Draw/update pieces
   var segsize = this.length / this.size
-  for (let i = 0; i < this.size * this.size; i += this.size) {
+  for (let i = 0; i < this.sizesq; i += this.size) {
     for (let j = 0; j < this.size; j++) {
       if(this.board[i + j] === EMPTY){
         this.vboard[i + j] = null
@@ -90,7 +91,24 @@ Board.prototype.draw = function () {
  */
 Board.prototype.clone = function () {
   let b = new Board(this.size)
-  for (let i = 0; i < this.size * this.size; i++) {
+  for (let i = 0; i < this.sizesq; i++) {
+    b.board[i] = this.board[i]
+  }
+  b.x = this.x
+  b.y = this.y
+  b.length = this.length
+  return b
+}
+
+/**
+ * Clones logical and visual aspect of board.
+ * Shallow copy.
+ * @return {[Board]} Clone of this.
+ */
+Board.prototype.cloneWithVisual = function () {
+  let b = new Board(this.size)
+  for (let i = 0; i < this.sizesq; i++) {
+    b.vboard[i] = this.vboard[i]
     b.board[i] = this.board[i]
   }
   b.x = this.x
@@ -128,7 +146,7 @@ Board.prototype.applyMove = function (move) {
  * @return {boolean}      Whether or not move is valid.
  */
 Board.prototype.isValidMove = function (move) {
-  return  move != null && move.index >= 0 && move.index < this.size * this.size &&
+  return  move != null && move.index >= 0 && move.index < this.sizesq &&
                 (move.value == X || move.value == O) &&
                 this.board[move.index] == EMPTY
 }
@@ -140,7 +158,7 @@ Board.prototype.isValidMove = function (move) {
 Board.prototype.getWinner = function () {
   let winner, found_winner;
   // Check rows
-  for (let i = 0; i < this.size * this.size; i += this.size) {
+  for (let i = 0; i < this.sizesq; i += this.size) {
     winner = this.board[i]
     found_winner = true
     for (let j = 0; j < this.size; j++) {
@@ -157,7 +175,7 @@ Board.prototype.getWinner = function () {
   for (let i = 0; i < this.size; i++) {
     winner = this.board[i]
     found_winner = true
-    for (let j = 0; j < this.size * this.size; j += this.size) {
+    for (let j = 0; j < this.sizesq; j += this.size) {
       if (this.board[i + j] != winner || winner == EMPTY) {
         found_winner = false
         break
@@ -170,7 +188,7 @@ Board.prototype.getWinner = function () {
   // Check down diagonal
   winner = this.board[0]
   found_winner = true
-  for (let i = 0; i < this.size * this.size; i += this.size + 1) {
+  for (let i = 0; i < this.sizesq; i += this.size + 1) {
     if (this.board[i] != winner || winner == EMPTY) {
       found_winner = false
       break
@@ -183,7 +201,7 @@ Board.prototype.getWinner = function () {
   // Check up diagonal
   winner = this.board[this.size - 1]
   found_winner = true
-  for (let i = this.size - 1; i < this.size * this.size - 1; i += this.size - 1) {
+  for (let i = this.size - 1; i < this.sizesq - 1; i += this.size - 1) {
     if (this.board[i] != winner || winner == EMPTY) {
       found_winner = false
       break
@@ -210,7 +228,7 @@ Board.prototype.hasWinner = function () {
  */
 Board.prototype.getAllMoves = function (player_id) {
   var moves = []
-  for (let i = 0; i < this.size * this.size; i++) {
+  for (let i = 0; i < this.sizesq; i++) {
     if (this.board[i] == EMPTY) {
         let move = new Move(i, player_id)
         if(this.isValidMove(move)){
@@ -225,7 +243,7 @@ Board.prototype.getAllMoves = function (player_id) {
  * Resets board logically.
  */
 Board.prototype.resetLogic = function () {
-  for (let i = 0; i < this.size * this.size; i++) {
+  for (let i = 0; i < this.sizesq; i++) {
     this.board[i] = EMPTY
   }
 }
@@ -234,7 +252,7 @@ Board.prototype.resetLogic = function () {
  * Resets board visually.
  */
 Board.prototype.resetVisual = function () {
-  for (let i = 0; i < this.size * this.size; i++) {
+  for (let i = 0; i < this.sizsq; i++) {
     this.vboard[i] = null
   }
   this.view_initialized = false;
@@ -257,4 +275,38 @@ Board.prototype.getMoveFromCoordinates = function(x, y, player_id)
   let yindex = floor(dy / unit_size)
   let rindex = xindex + yindex * this.size
   return new Move(rindex, player_id)
+}
+
+/**
+ * Rotates a board anticlockwise.
+ */
+Board.prototype.rotate = function()
+{
+  let copy = this.cloneWithVisual()
+
+  for(let pos = this.sizesq-this.size; pos < this.sizesq; pos++){
+      let row = pos - (this.sizesq-this.size)
+      for(let off = 0; off < this.size; off++){
+        this.board[pos - off * this.size] = copy.board[row * this.size + off]
+        if(this.view_initialized){
+          this.vboard[pos - off * this.size] = copy.vboard[row * this.size + off]
+        }
+      }
+  }
+}
+
+/**
+ * Compares 2 boards for equality.
+ * @param  {Board} other Board to compare to.
+ * @return {boolean}       this.board == other.board
+ */
+Board.prototype.equals = function(other)
+{
+  var same = true
+  for(let i = 0; i<this.sizesq; i++){
+    if(this.board[i] != other.board[i]){
+      same = false
+    }
+  }
+  return same
 }

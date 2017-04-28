@@ -1,3 +1,4 @@
+"use strict";
 /**
  * A TicTacToe player that uses minmax algorithm with alpha beta pruning.
  * @param {int} id Player id
@@ -30,6 +31,8 @@ AlphaBetaPlayer.prototype.getMove = function (board) {
  * Returns move from a max node config.
  * @param  {Board} board Current board.
  * @param  {Move} pmove Last move to be played.
+ * @param  {int} a      Alpha
+ * @param  {int} b      Beta
  * @return {Move}       Maximum minmax value move.
  */
 AlphaBetaPlayer.prototype.get_max_move = function (board, pmove, a, b) {
@@ -58,6 +61,8 @@ AlphaBetaPlayer.prototype.get_max_move = function (board, pmove, a, b) {
  * Returns move from a min node config.
  * @param  {Board} board Current board.
  * @param  {Move} pmove Last move to be played.
+ * @param  {int} a      Alpha
+ * @param  {int} b      Beta
  * @return {Move}       Minimum minmax value move.
  */
 AlphaBetaPlayer.prototype.get_min_move = function (board, pmove, a, b) {
@@ -114,6 +119,175 @@ AlphaBetaPlayer.prototype.isTerminal = function (board) {
   return winner || board.getAllMoves(X).length == 0
 }
 
+var ABSP_MAX_DEPTH = 3
+/**
+ * A TicTacToe player that uses minmax algorithm with alpha beta pruning.
+ * @param {int} id Player id
+ */
+function AlphaBetaSymmetryPlayer (id, game) {
+  this.id = id
+  this.move_count = 0
+  if (id == X) {
+    this.enemy_id = O
+  } else {
+    this.enemy_id = X
+  }
+  this.super = Player.prototype
+  this.super.constructor.apply(this, [id, game])
+}
+
+AlphaBetaSymmetryPlayer.prototype = Object.create(Player.prototype)
+AlphaBetaSymmetryPlayer.prototype.constructor = AlphaBetaSymmetryPlayer
+
+/**
+ * Standard player move.
+ * @param  {Board} board Current state of board.
+ * @return {Move}       Move to be played.
+ */
+AlphaBetaSymmetryPlayer.prototype.getMove = function (board) {
+  this.move_count = 0
+  var best_move = this.get_max_move(board.clone(), null, -Infinity, Infinity, 0)
+  this.move_count++
+  this.game.playMove(best_move)
+}
+
+/**
+ * Returns move from a max node config.
+ * @param  {Board} board Current board.
+ * @param  {Move} pmove Last move to be played.
+ * @param  {int} a      Alpha
+ * @param  {int} b      Beta
+ * @param  {int} depth Current depth in tree.
+ * @return {Move}       Maximum minmax value move.
+ */
+AlphaBetaSymmetryPlayer.prototype.get_max_move = function (board, pmove, a, b, depth) {
+  if (this.isTerminal(board)) {
+    pmove.minmax = this.terminalValue(board)
+    return pmove
+  }
+  var max_move = {minmax: -Infinity}
+  var all_moves = board.getAllMoves(this.id)
+  if(depth + this.move_count < ABSP_MAX_DEPTH){
+    all_moves = this.pruneMoves(board, all_moves)
+  }
+  for (let move of all_moves) {
+    var nboard = board.clone()
+    nboard.applyMove(move)
+    var nmove = this.get_min_move(nboard, move, a, b, depth + 1)
+    if (nmove.minmax > max_move.minmax) {
+      max_move = move.clone()
+      max_move.minmax = nmove.minmax
+    }
+    if(max_move.minmax >= b){
+      break
+    }
+    a = max(a, max_move.minmax)
+  }
+  return max_move
+}
+
+/**
+ * Returns move from a min node config.
+ * @param  {Board} board Current board.
+ * @param  {Move} pmove Last move to be played.
+ * @param  {int} a      Alpha
+ * @param  {int} b      Beta
+ * @param  {int} depth Current depth in tree.
+ * @return {Move}       Minimum minmax value move.
+ */
+AlphaBetaSymmetryPlayer.prototype.get_min_move = function (board, pmove, a, b, depth) {
+  if (this.isTerminal(board)) {
+    pmove.minmax = this.terminalValue(board)
+    return pmove
+  }
+  var min_move = {minmax: Infinity}
+  var all_moves = board.getAllMoves(this.enemy_id)
+  if(depth + this.move_count < ABSP_MAX_DEPTH){
+    all_moves = this.pruneMoves(board, all_moves)
+  }
+  for (let move of all_moves) {
+    var nboard = board.clone()
+    nboard.applyMove(move)
+    var nmove = this.get_max_move(nboard, move, a, b, depth + 1)
+    if (nmove.minmax < min_move.minmax) {
+      min_move = move.clone()
+      min_move.minmax = nmove.minmax
+    }
+    if(min_move.minmax <= a){
+      break
+    }
+    b = min(b, min_move.minmax)
+  }
+  return min_move
+}
+
+
+/**
+ * Calculates minmax value of a terminal board state.
+ * @param  {Board} board Current board state.
+ * @return {int}       Minmax value.
+ */
+AlphaBetaSymmetryPlayer.prototype.terminalValue = function (board) {
+  if (board.hasWinner()) {
+    var winner = board.getWinner()
+    if (winner == this.id) {
+      return 3
+    } else {
+      return 1
+    }
+  } else {
+    if (board.getAllMoves(X).length == 0) {
+      return 2
+    }
+  }
+  return 23
+}
+
+/**
+ * Returns whether or not board is terminal.
+ * @param  {Board} board Current board state.
+ * @return {Boolean}
+ */
+AlphaBetaSymmetryPlayer.prototype.isTerminal = function (board) {
+  var winner = board.hasWinner()
+  return winner || board.getAllMoves(X).length == 0
+}
+
+/**
+ * Returns pruned version of list.
+ * @param  {Board} board Context of moves.
+ * @param  {Move[]} moves List to be pruned.
+ * @return {Move[]}       Pruned list.
+ */
+AlphaBetaSymmetryPlayer.prototype.pruneMoves = function (board, moves)
+{
+  var pruned = []
+  var board_states = []
+  for(let i = 0; i < moves.length; i++){
+    let temp_board = board.clone()
+    temp_board.applyMove(moves[i])
+    let newb = true
+    for(let j = 0; j < 3; j++){
+      for(let k = 0; k < board_states.length; k++){
+        if(board_states[k].equals(temp_board)){
+          newb = false
+          break
+        }
+      }
+      if(newb == false){
+        break
+      } else{
+        temp_board.rotate()
+      }
+    }
+    if(newb == true){
+      board_states.push(temp_board)
+      pruned.push(moves[i])
+    }
+  }
+  return pruned
+}
+
 /**
  * A rectangle object that is a Mover.
  * Subclass of Mover.
@@ -157,11 +331,12 @@ var OPIECE_SCALE = 0.7 // Visual scale
  */
 function Board (size) {
   this.size = size
+  this.sizesq = size * size
   this.board = [] // Logical board
   this.vboard = [] // Visual object board
   this.bars = [] // Visual board bars
   this.view_initialized = false;
-  for (let i = 0; i < this.size * this.size; i++) {
+  for (let i = 0; i < this.sizesq; i++) {
     this.board[i] = EMPTY
   }
 }
@@ -189,7 +364,7 @@ Board.prototype.initView = function (x, y, length) {
     }
   }
   // Initialize vboard
-  for (let i = 0; i < this.size * this.size; i++) {
+  for (let i = 0; i < this.sizesq; i++) {
     if (this.board[i] == X) {
       this.vboard[i] = (new XPiece(x, y, XPIECE_SCALE * (length / this.size)))
     } else if (this.board[i] == O) {
@@ -214,7 +389,7 @@ Board.prototype.draw = function () {
   }
   // Draw/update pieces
   var segsize = this.length / this.size
-  for (let i = 0; i < this.size * this.size; i += this.size) {
+  for (let i = 0; i < this.sizesq; i += this.size) {
     for (let j = 0; j < this.size; j++) {
       if(this.board[i + j] === EMPTY){
         this.vboard[i + j] = null
@@ -238,7 +413,24 @@ Board.prototype.draw = function () {
  */
 Board.prototype.clone = function () {
   let b = new Board(this.size)
-  for (let i = 0; i < this.size * this.size; i++) {
+  for (let i = 0; i < this.sizesq; i++) {
+    b.board[i] = this.board[i]
+  }
+  b.x = this.x
+  b.y = this.y
+  b.length = this.length
+  return b
+}
+
+/**
+ * Clones logical and visual aspect of board.
+ * Shallow copy.
+ * @return {[Board]} Clone of this.
+ */
+Board.prototype.cloneWithVisual = function () {
+  let b = new Board(this.size)
+  for (let i = 0; i < this.sizesq; i++) {
+    b.vboard[i] = this.vboard[i]
     b.board[i] = this.board[i]
   }
   b.x = this.x
@@ -276,7 +468,7 @@ Board.prototype.applyMove = function (move) {
  * @return {boolean}      Whether or not move is valid.
  */
 Board.prototype.isValidMove = function (move) {
-  return  move != null && move.index >= 0 && move.index < this.size * this.size &&
+  return  move != null && move.index >= 0 && move.index < this.sizesq &&
                 (move.value == X || move.value == O) &&
                 this.board[move.index] == EMPTY
 }
@@ -288,7 +480,7 @@ Board.prototype.isValidMove = function (move) {
 Board.prototype.getWinner = function () {
   let winner, found_winner;
   // Check rows
-  for (let i = 0; i < this.size * this.size; i += this.size) {
+  for (let i = 0; i < this.sizesq; i += this.size) {
     winner = this.board[i]
     found_winner = true
     for (let j = 0; j < this.size; j++) {
@@ -305,7 +497,7 @@ Board.prototype.getWinner = function () {
   for (let i = 0; i < this.size; i++) {
     winner = this.board[i]
     found_winner = true
-    for (let j = 0; j < this.size * this.size; j += this.size) {
+    for (let j = 0; j < this.sizesq; j += this.size) {
       if (this.board[i + j] != winner || winner == EMPTY) {
         found_winner = false
         break
@@ -318,7 +510,7 @@ Board.prototype.getWinner = function () {
   // Check down diagonal
   winner = this.board[0]
   found_winner = true
-  for (let i = 0; i < this.size * this.size; i += this.size + 1) {
+  for (let i = 0; i < this.sizesq; i += this.size + 1) {
     if (this.board[i] != winner || winner == EMPTY) {
       found_winner = false
       break
@@ -331,7 +523,7 @@ Board.prototype.getWinner = function () {
   // Check up diagonal
   winner = this.board[this.size - 1]
   found_winner = true
-  for (let i = this.size - 1; i < this.size * this.size - 1; i += this.size - 1) {
+  for (let i = this.size - 1; i < this.sizesq - 1; i += this.size - 1) {
     if (this.board[i] != winner || winner == EMPTY) {
       found_winner = false
       break
@@ -358,7 +550,7 @@ Board.prototype.hasWinner = function () {
  */
 Board.prototype.getAllMoves = function (player_id) {
   var moves = []
-  for (let i = 0; i < this.size * this.size; i++) {
+  for (let i = 0; i < this.sizesq; i++) {
     if (this.board[i] == EMPTY) {
         let move = new Move(i, player_id)
         if(this.isValidMove(move)){
@@ -373,7 +565,7 @@ Board.prototype.getAllMoves = function (player_id) {
  * Resets board logically.
  */
 Board.prototype.resetLogic = function () {
-  for (let i = 0; i < this.size * this.size; i++) {
+  for (let i = 0; i < this.sizesq; i++) {
     this.board[i] = EMPTY
   }
 }
@@ -382,7 +574,7 @@ Board.prototype.resetLogic = function () {
  * Resets board visually.
  */
 Board.prototype.resetVisual = function () {
-  for (let i = 0; i < this.size * this.size; i++) {
+  for (let i = 0; i < this.sizsq; i++) {
     this.vboard[i] = null
   }
   this.view_initialized = false;
@@ -405,6 +597,40 @@ Board.prototype.getMoveFromCoordinates = function(x, y, player_id)
   let yindex = floor(dy / unit_size)
   let rindex = xindex + yindex * this.size
   return new Move(rindex, player_id)
+}
+
+/**
+ * Rotates a board anticlockwise.
+ */
+Board.prototype.rotate = function()
+{
+  let copy = this.cloneWithVisual()
+
+  for(let pos = this.sizesq-this.size; pos < this.sizesq; pos++){
+      let row = pos - (this.sizesq-this.size)
+      for(let off = 0; off < this.size; off++){
+        this.board[pos - off * this.size] = copy.board[row * this.size + off]
+        if(this.view_initialized){
+          this.vboard[pos - off * this.size] = copy.vboard[row * this.size + off]
+        }
+      }
+  }
+}
+
+/**
+ * Compares 2 boards for equality.
+ * @param  {Board} other Board to compare to.
+ * @return {boolean}       this.board == other.board
+ */
+Board.prototype.equals = function(other)
+{
+  var same = true
+  for(let i = 0; i<this.sizesq; i++){
+    if(this.board[i] != other.board[i]){
+      same = false
+    }
+  }
+  return same
 }
 
 /**
@@ -472,8 +698,7 @@ function HumanPlayer (id, game) {
   this.super.constructor.apply(this, [id, game])
   this.board;
   var self = this
-  document.addEventListener("click", function(){
-    console.log("TEST!")
+  document.addEventListener("mouseup", function(){
     if(self.game != null && self.board != null){
       self.game.playMove(self.board.getMoveFromCoordinates(mouseX, mouseY, self.id))
     }
@@ -773,6 +998,8 @@ XPiece.prototype.draw = function () {
  */
 var board
 var sizeSlider
+var xSelect
+var oSelect
 var playButton
 var SPRING = 0.1
 var CENTER_BOARD_SIZE = 100
@@ -784,6 +1011,7 @@ var PLAYER_CHOICES = {
   'Random': RandomPlayer,
   'MinMax': MinMaxPlayer,
   'AlphaBeta': AlphaBetaPlayer,
+  'AlphaBetaSymmetry': AlphaBetaSymmetryPlayer,
   'Human': HumanPlayer
 }
 
@@ -808,8 +1036,8 @@ function setup () {
     oSelect.option(ch)
   }
 
-  xSelect.position(windowWidth / 2 - xSelect.width * 3, windowHeight - 130)
-  oSelect.position(windowWidth / 2 + oSelect.width * 2, windowHeight - 130)
+  xSelect.position(windowWidth / 2 - xSelect.width * 6, windowHeight - 130)
+  oSelect.position(windowWidth / 2 + oSelect.width * 4, windowHeight - 130)
 
   playButton = createButton('Start game')
   playButton.position(windowWidth / 2 - playButton.width / 2, windowHeight - 50)

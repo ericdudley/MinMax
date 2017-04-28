@@ -7,8 +7,7 @@ function HumanPlayer (id, game) {
   this.super.constructor.apply(this, [id, game])
   this.board;
   var self = this
-  document.addEventListener("click", function(){
-    console.log("TEST!")
+  document.addEventListener("mouseup", function(){
     if(self.game != null && self.board != null){
       self.game.playMove(self.board.getMoveFromCoordinates(mouseX, mouseY, self.id))
     }

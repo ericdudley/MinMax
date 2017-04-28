@@ -3,6 +3,8 @@
  */
 var board
 var sizeSlider
+var xSelect
+var oSelect
 var playButton
 var SPRING = 0.1
 var CENTER_BOARD_SIZE = 100
@@ -14,6 +16,7 @@ var PLAYER_CHOICES = {
   'Random': RandomPlayer,
   'MinMax': MinMaxPlayer,
   'AlphaBeta': AlphaBetaPlayer,
+  'AlphaBetaSymmetry': AlphaBetaSymmetryPlayer,
   'Human': HumanPlayer
 }
 
@@ -38,8 +41,8 @@ function setup () {
     oSelect.option(ch)
   }
 
-  xSelect.position(windowWidth / 2 - xSelect.width * 3, windowHeight - 130)
-  oSelect.position(windowWidth / 2 + oSelect.width * 2, windowHeight - 130)
+  xSelect.position(windowWidth / 2 - xSelect.width * 6, windowHeight - 130)
+  oSelect.position(windowWidth / 2 + oSelect.width * 4, windowHeight - 130)
 
   playButton = createButton('Start game')
   playButton.position(windowWidth / 2 - playButton.width / 2, windowHeight - 50)
